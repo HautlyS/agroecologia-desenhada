@@ -57,27 +57,33 @@ const Index = () => {
     }
   }, [undoRedoActions]);
 
-  // Enhanced save functionality with complete project data
+  // Enhanced save functionality with complete project data from canvas
   const handleSave = useCallback(() => {
-    try {
+    if (!canvasRef.current) {
+      toast.info('Obtendo dados do canvas...');
+
+      // Get current elements from canvas
+      const elements = canvasRef.current.getElements();
+      const canvasSize = canvasRef.current.getProjectData().projectInfo.canvasSize;
+
       // Create export data with all canvas elements
-      const exportData = createExportData(canvasElements, canvasSize, 'Meu Projeto');
+      const exportData = createExportData(elements, canvasSize, 'Meu Projeto');
 
       // Save to localStorage
       localStorage.setItem('agroecologia-current-project', JSON.stringify(exportData));
       localStorage.setItem('agroecologia-last-save', Date.now().toString());
 
       // Also export as JSON file for user
-      exportProjectAsJSON(canvasElements, canvasSize, 'meu-projeto');
+      exportProjectAsJSON(elements, canvasSize, 'meu-projeto');
 
       toast.success('Projeto salvo com sucesso!', {
-        description: `${canvasElements.length} elementos salvos`
+        description: `${elements.length} elementos salvos`
       });
     } catch (error) {
       console.error('Save failed:', error);
       toast.error('Erro ao salvar projeto');
     }
-  }, [canvasElements, canvasSize]);
+  }, []);
 
   // Enhanced share functionality
   const handleShare = useCallback(async () => {
