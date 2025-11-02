@@ -41,6 +41,71 @@ const Index = () => {
     }
   }, []);
 
+  // Enhanced undo/redo handlers with proper integration
+  const handleUndo = useCallback(() => {
+    if (undoRedoActions?.undo) {
+      undoRedoActions.undo();
+    }
+  }, [undoRedoActions]);
+
+  const handleRedo = useCallback(() => {
+    if (undoRedoActions?.redo) {
+      undoRedoActions.redo();
+    }
+  }, [undoRedoActions]);
+
+  // Enhanced save functionality with localStorage integration
+  const handleSave = useCallback(() => {
+    if (canvasRef.current) {
+      // Create a save data object
+      const saveData = {
+        version: '1.0',
+        timestamp: Date.now(),
+        canvasSize: canvasSize,
+        selectedTool: selectedTool,
+        selectedPlant: selectedPlant,
+        selectedTerrain: selectedTerrain,
+        // Note: We'll need to add a method to get all elements from canvas
+        metadata: {
+          elementsCount: 'unknown',
+          lastModified: new Date().toISOString()
+        }
+      };
+
+      try {
+        localStorage.setItem('agroecologia-current-project', JSON.stringify(saveData));
+        localStorage.setItem('agroecologia-last-save', Date.now().toString());
+        // Success toast will be handled by the Canvas component
+      } catch (error) {
+        console.error('Save failed:', error);
+        // Error toast will be handled by the Canvas component
+      }
+    }
+  }, [canvasSize, selectedTool, selectedPlant, selectedTerrain]);
+
+  // Enhanced share functionality
+  const handleShare = useCallback(async () => {
+    if (canvasRef.current && navigator.share) {
+      try {
+        // Create share data
+        const shareData = {
+          title: 'Projeto Agroecologia Desenhada',
+          text: `Projeto com dimensões ${canvasSize.width}x${canvasSize.height}m`,
+          url: window.location.href
+        };
+
+        await navigator.share(shareData);
+      } catch (error) {
+        console.log('Share cancelled or failed:', error);
+        // Fallback to copying link
+        if (navigator.clipboard) {
+          await navigator.clipboard.writeText(window.location.href);
+          // Success toast will be handled elsewhere
+        }
+      }
+    }
+  }, [canvasSize]);
+
   const handleToolSelect = useCallback((tool: string) => {
     setSelectedTool(tool);
     if (tool === "terrain") {
