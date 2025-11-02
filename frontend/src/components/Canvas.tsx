@@ -1499,7 +1499,7 @@ const handleMouseMove = useCallback((e: React.MouseEvent) => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [deleteSelectedElements, clearSelection, copySelectedElements, onToolChange, elementsActions, resetZoom, zoomToFit, elements]);
+  }, [deleteSelectedElements, clearSelection, copySelectedElements, pasteCopiedElements, onToolChange, elementsActions, resetZoom, zoomToFit, elements]);
 
   const handleReset = useCallback(() => {
     resetZoom();
