@@ -1417,6 +1417,12 @@ const handleMouseMove = useCallback((e: React.MouseEvent) => {
           toast.info("Ferramenta Círculo ativada");
         }
       }
+
+      // V - paste
+      if ((e.key === 'v' || e.key === 'V') && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        pasteCopiedElements();
+      }
       
       // T - terrain tool
       if (e.key === 't' || e.key === 'T') {
