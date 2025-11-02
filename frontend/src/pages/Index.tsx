@@ -30,6 +30,7 @@ const Index = () => {
   const [canvasSize, setCanvasSize] = useState({ width: 50, height: 30 });
   const [showMobileLibrary, setShowMobileLibrary] = useState(false);
   const canvasRef = useRef<CanvasRef>(null);
+  const [undoRedoActions, setUndoRedoActions] = useState<{ canUndo: boolean; canRedo: boolean; undo: () => void; redo: () => void } | null>(null);
 
   const { isMobile, isTablet } = useResponsive();
   const isCompact = isMobile || isTablet;
