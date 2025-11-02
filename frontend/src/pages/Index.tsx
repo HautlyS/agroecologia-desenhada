@@ -150,6 +150,35 @@ const Index = () => {
   }, [isCompact]);
 
   const handleWelcomeClose = useCallback(() => setShowWelcome(false), []);
+
+  // Enhanced copy functionality
+  const handleCopy = useCallback(() => {
+    // This will trigger copy in the Canvas component
+    if (canvasRef.current) {
+      // Trigger keyboard event for copy
+      const event = new KeyboardEvent('keydown', {
+        key: 'c',
+        ctrlKey: true,
+        bubbles: true,
+        cancelable: true
+      });
+      window.dispatchEvent(event);
+    }
+  }, []);
+
+  // Enhanced rotate functionality
+  const handleRotate = useCallback(() => {
+    // This will trigger rotate in the Canvas component
+    if (canvasRef.current) {
+      // Trigger keyboard event for rotate
+      const event = new KeyboardEvent('keydown', {
+        key: 'r',
+        bubbles: true,
+        cancelable: true
+      });
+      window.dispatchEvent(event);
+    }
+  }, []);
   
   const handleCanvasSizeChange = useCallback((size: { width: number; height: number }) => {
     setCanvasSize(size);
