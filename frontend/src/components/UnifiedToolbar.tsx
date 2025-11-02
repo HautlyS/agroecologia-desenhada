@@ -259,6 +259,22 @@ export const UnifiedToolbar = memo(({
     }
   }, [canvasSize, onCanvasSizeChange]);
 
+  const handleRotate = useCallback(() => {
+    if (onRotate && canRotate) {
+      onRotate();
+    } else {
+      toast.info("Selecione elementos para rotacionar");
+    }
+  }, [onRotate, canRotate]);
+
+  const handleCopy = useCallback(() => {
+    if (onCopy && canCopy) {
+      onCopy();
+    } else {
+      toast.info("Selecione elementos para copiar");
+    }
+  }, [onCopy, canCopy]);
+
   const memoizedTools = useMemo(() => tools.map(tool => (
     <ToolButton
       key={tool.id}
