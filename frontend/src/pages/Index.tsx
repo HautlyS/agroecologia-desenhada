@@ -324,6 +324,8 @@ const Index = () => {
           onSave={handleSave}
           onShare={handleShare}
           onExport={handleExportCanvas}
+          onCopy={handleCopy}
+          onRotate={handleRotate}
         />
 
         {/* Main Content with Glass Morphism */}
