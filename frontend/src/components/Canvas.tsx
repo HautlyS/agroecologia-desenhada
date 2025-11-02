@@ -433,12 +433,30 @@ export const Canvas = memo(forwardRef<CanvasRef, CanvasProps>(({ selectedTool, s
     });
   }, [elements]);
 
-  // Expose export functions to parent component
+  // Expose export functions and data access to parent component
   useImperativeHandle(ref, () => ({
     exportFullCanvas,
     exportSelectionAsPNG,
-    exportSelectedElementsAsPNG
-  }), [exportFullCanvas, exportSelectionAsPNG, exportSelectedElementsAsPNG]);
+    exportSelectedElementsAsPNG,
+    getElements: () => elements,
+    getProjectData: () => ({
+      version: '1.0',
+      timestamp: Date.now(),
+      canvasSize: canvasRealSize,
+      elements: elements,
+      projectInfo: {
+        name: 'Meu Projeto Agroecológico',
+        canvasSize: canvasRealSize,
+        totalElements: elements.length,
+        categories: {
+          plants: elements.filter(el => el.type === 'plant').length,
+          terrain: elements.filter(el => el.type === 'terrain').length,
+          structures: elements.filter(el => el.type === 'structure').length,
+          shapes: elements.filter(el => el.type === 'rectangle' || el.type === 'circle').length
+        },
+      }
+    }),
+  }), [exportFullCanvas, exportSelectionAsPNG, exportSelectedElementsAsPNG, elements, canvasRealSize]);
   
   // Center selection area in canvas
   const centerSelectionArea = useCallback(() => {
