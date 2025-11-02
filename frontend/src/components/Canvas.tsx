@@ -1280,8 +1280,14 @@ const handleMouseMove = useCallback((e: React.MouseEvent) => {
   // Enhanced keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Prevent shortcuts when typing in input fields
+      // Prevent shortcuts when typing in input fields or when modals are open
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      // Check if any modal or dialog is open
+      const modalOpen = document.querySelector('[role="dialog"], .modal, [data-modal="true"]');
+      if (modalOpen) {
         return;
       }
 
@@ -1289,13 +1295,13 @@ const handleMouseMove = useCallback((e: React.MouseEvent) => {
         e.preventDefault();
         setIsSpacePressed(true);
       }
-      
+
       // Delete/Backspace - delete selected elements
       if (e.key === 'Delete' || e.key === 'Backspace') {
         e.preventDefault();
         deleteSelectedElements();
       }
-      
+
       // Escape - clear selection and cancel operations
       if (e.key === 'Escape') {
         e.preventDefault();
@@ -1309,7 +1315,9 @@ const handleMouseMove = useCallback((e: React.MouseEvent) => {
         setIsResizing(false);
         setResizeHandle(null);
         setResizeElement(null);
-        onToolChange('select'); // Switch to select tool
+        if (onToolChange) {
+          onToolChange('select'); // Switch to select tool
+        }
       }
       
       // G - toggle grid
