@@ -120,6 +120,7 @@ export interface CanvasProps {
   onToolChange: (tool: string) => void;
   canvasSize?: Dimensions;
   onCanvasSizeChange?: (size: Dimensions) => void;
+  onUndoRedoActionsChange?: (actions: { canUndo: boolean; canRedo: boolean; undo: () => void; redo: () => void } | null) => void;
 }
 
 // Event handler types
