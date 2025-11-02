@@ -274,35 +274,48 @@ export const Canvas = memo(forwardRef<CanvasRef, CanvasProps>(({ selectedTool, s
 
   // Optimized drag update function using requestAnimationFrame
   const scheduleDragUpdate = useCallback((elementId: number, x: number, y: number) => {
+    // Validate coordinates
+    if (!isFinite(x) || !isFinite(y)) {
+      console.warn('Invalid coordinates in drag update:', { x, y });
+      return;
+    }
+
+    // Check if element still exists
+    const elementExists = elements.some(el => el.id === elementId);
+    if (!elementExists) {
+      console.warn('Element not found for drag update:', elementId);
+      return;
+    }
+
     console.log('Scheduling drag update for element:', elementId, 'to position:', { x, y });
     pendingDragUpdate.current = { elementId, x, y };
-    
+
     if (dragAnimationFrame.current) {
       return; // Update already scheduled
     }
-    
+
     dragAnimationFrame.current = requestAnimationFrame(() => {
       const now = performance.now();
       const timeSinceLastUpdate = now - lastDragUpdate.current;
-      
+
       // Throttle updates to max 60fps (16.67ms)
       if (timeSinceLastUpdate >= 16.67 && pendingDragUpdate.current) {
         const { elementId, x, y } = pendingDragUpdate.current;
         console.log('Applying drag update for element:', elementId, 'to position:', { x, y });
-        
+
         const updatedElements = elements.map(el => {
           if (el.id === elementId) {
             // Handle terrain brush elements with path points
             if (el.type === 'terrain' && el.pathPoints && el.pathPoints.length > 0) {
               const deltaX = x - el.x;
               const deltaY = y - el.y;
-              
+
               // Move all path points along with the element
               const updatedPathPoints = el.pathPoints.map(point => ({
                 x: point.x + deltaX,
                 y: point.y + deltaY
               }));
-              
+
               return { ...el, x, y, pathPoints: updatedPathPoints };
             }
             // Regular element update
@@ -310,12 +323,12 @@ export const Canvas = memo(forwardRef<CanvasRef, CanvasProps>(({ selectedTool, s
           }
           return el;
         });
-        
+
         elementsActions.set(updatedElements);
         lastDragUpdate.current = now;
         pendingDragUpdate.current = null;
       }
-      
+
       dragAnimationFrame.current = null;
     });
   }, [elements, elementsActions]);
