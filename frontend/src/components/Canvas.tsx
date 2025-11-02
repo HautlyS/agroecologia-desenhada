@@ -23,9 +23,11 @@ export interface CanvasRef {
   exportFullCanvas: () => Promise<void>;
   exportSelectionAsPNG: () => Promise<void>;
   exportSelectedElementsAsPNG: () => Promise<void>;
+  getElements: () => any[];
+  getProjectData: () => any;
 }
 
-export const Canvas = memo(forwardRef<CanvasRef, CanvasProps>(({ selectedTool, selectedPlant, selectedTerrain, selectedStructure, onPlantUsed, onTerrainUsed, onStructureUsed, onToolChange, canvasSize = CANVAS_CONSTANTS.DEFAULT_CANVAS_REAL_SIZE, onCanvasSizeChange }, ref) => {
+export const Canvas = memo(forwardRef<CanvasRef, CanvasProps>(({ selectedTool, selectedPlant, selectedTerrain, selectedStructure, onPlantUsed, onTerrainUsed, onStructureUsed, onToolChange, canvasSize = CANVAS_CONSTANTS.DEFAULT_CANVAS_REAL_SIZE, onCanvasSizeChange, onUndoRedoActionsChange }, ref) => {
   const canvasRef = useRef<HTMLDivElement>(null);
   const [elements, elementsActions] = useUndoRedo<DrawingElement[]>([], {
     maxHistorySize: 50,
@@ -274,35 +276,48 @@ export const Canvas = memo(forwardRef<CanvasRef, CanvasProps>(({ selectedTool, s
 
   // Optimized drag update function using requestAnimationFrame
   const scheduleDragUpdate = useCallback((elementId: number, x: number, y: number) => {
+    // Validate coordinates
+    if (!isFinite(x) || !isFinite(y)) {
+      console.warn('Invalid coordinates in drag update:', { x, y });
+      return;
+    }
+
+    // Check if element still exists
+    const elementExists = elements.some(el => el.id === elementId);
+    if (!elementExists) {
+      console.warn('Element not found for drag update:', elementId);
+      return;
+    }
+
     console.log('Scheduling drag update for element:', elementId, 'to position:', { x, y });
     pendingDragUpdate.current = { elementId, x, y };
-    
+
     if (dragAnimationFrame.current) {
       return; // Update already scheduled
     }
-    
+
     dragAnimationFrame.current = requestAnimationFrame(() => {
       const now = performance.now();
       const timeSinceLastUpdate = now - lastDragUpdate.current;
-      
+
       // Throttle updates to max 60fps (16.67ms)
       if (timeSinceLastUpdate >= 16.67 && pendingDragUpdate.current) {
         const { elementId, x, y } = pendingDragUpdate.current;
         console.log('Applying drag update for element:', elementId, 'to position:', { x, y });
-        
+
         const updatedElements = elements.map(el => {
           if (el.id === elementId) {
             // Handle terrain brush elements with path points
             if (el.type === 'terrain' && el.pathPoints && el.pathPoints.length > 0) {
               const deltaX = x - el.x;
               const deltaY = y - el.y;
-              
+
               // Move all path points along with the element
               const updatedPathPoints = el.pathPoints.map(point => ({
                 x: point.x + deltaX,
                 y: point.y + deltaY
               }));
-              
+
               return { ...el, x, y, pathPoints: updatedPathPoints };
             }
             // Regular element update
@@ -310,12 +325,12 @@ export const Canvas = memo(forwardRef<CanvasRef, CanvasProps>(({ selectedTool, s
           }
           return el;
         });
-        
+
         elementsActions.set(updatedElements);
         lastDragUpdate.current = now;
         pendingDragUpdate.current = null;
       }
-      
+
       dragAnimationFrame.current = null;
     });
   }, [elements, elementsActions]);
@@ -418,12 +433,30 @@ export const Canvas = memo(forwardRef<CanvasRef, CanvasProps>(({ selectedTool, s
     });
   }, [elements]);
 
-  // Expose export functions to parent component
+  // Expose export functions and data access to parent component
   useImperativeHandle(ref, () => ({
     exportFullCanvas,
     exportSelectionAsPNG,
-    exportSelectedElementsAsPNG
-  }), [exportFullCanvas, exportSelectionAsPNG, exportSelectedElementsAsPNG]);
+    exportSelectedElementsAsPNG,
+    getElements: () => elements,
+    getProjectData: () => ({
+      version: '1.0',
+      timestamp: Date.now(),
+      canvasSize: canvasRealSize,
+      elements: elements,
+      projectInfo: {
+        name: 'Meu Projeto Agroecológico',
+        canvasSize: canvasRealSize,
+        totalElements: elements.length,
+        categories: {
+          plants: elements.filter(el => el.type === 'plant').length,
+          terrain: elements.filter(el => el.type === 'terrain').length,
+          structures: elements.filter(el => el.type === 'structure').length,
+          shapes: elements.filter(el => el.type === 'rectangle' || el.type === 'circle').length
+        },
+      }
+    }),
+  }), [exportFullCanvas, exportSelectionAsPNG, exportSelectedElementsAsPNG, elements, canvasRealSize]);
   
   // Center selection area in canvas
   const centerSelectionArea = useCallback(() => {
@@ -560,6 +593,14 @@ export const Canvas = memo(forwardRef<CanvasRef, CanvasProps>(({ selectedTool, s
   const copySelectedElements = useCallback(() => {
     const selectedElements = elements.filter(el => el.selected);
     if (selectedElements.length > 0) {
+      // Store selected elements in clipboard (localStorage)
+      const clipboardData = {
+        elements: selectedElements,
+        timestamp: Date.now()
+      };
+      localStorage.setItem('agroecolia-copied-elements', JSON.stringify(clipboardData));
+
+      // Also add to canvas with offset for immediate feedback
       const copiedElements = selectedElements.map(el => ({
         ...el,
         id: Date.now() + Math.random(),
@@ -574,6 +615,37 @@ export const Canvas = memo(forwardRef<CanvasRef, CanvasProps>(({ selectedTool, s
       toast.error("Selecione elementos para copiar");
     }
   }, [elements, elementsActions, clearSelection]);
+
+  const pasteCopiedElements = useCallback(() => {
+    try {
+      const clipboardData = localStorage.getItem('agroecolia-copied-elements');
+      if (!clipboardData) {
+        toast.error("Nada para colar");
+        return;
+      }
+
+      const { elements: copiedElements } = JSON.parse(clipboardData);
+      if (!Array.isArray(copiedElements) || copiedElements.length === 0) {
+        toast.error("Dados inválidos na área de transferência");
+        return;
+      }
+
+      // Add elements with new IDs and offset
+      const newElements = copiedElements.map(el => ({
+        ...el,
+        id: Date.now() + Math.random(),
+        x: el.x + 30,
+        y: el.y + 30,
+        selected: false
+      }));
+
+      elementsActions.set([...elements, ...newElements]);
+      toast.success(`${newElements.length} elemento(s) colado(s)`);
+    } catch (error) {
+      console.error('Error pasting elements:', error);
+      toast.error("Erro ao colar elementos");
+    }
+  }, [elements, elementsActions]);
 
   const rotateSelectedElements = useCallback(() => {
     const selectedElements = elements.filter(el => el.selected);
@@ -1259,12 +1331,35 @@ const handleMouseMove = useCallback((e: React.MouseEvent) => {
       setCanvasRealSize(canvasSize);
     }
   }, [canvasSize]);
+
+  // Expose undo/redo actions to parent component
+  useEffect(() => {
+    if (onUndoRedoActionsChange) {
+      const actions = {
+        canUndo: elementsActions.canUndo,
+        canRedo: elementsActions.canRedo,
+        undo: () => {
+          elementsActions.undo();
+        },
+        redo: () => {
+          elementsActions.redo();
+        }
+      };
+      onUndoRedoActionsChange(actions);
+    }
+  }, [elementsActions.canUndo, elementsActions.canRedo, elementsActions.undo, elementsActions.redo, onUndoRedoActionsChange]);
   
   // Enhanced keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Prevent shortcuts when typing in input fields
+      // Prevent shortcuts when typing in input fields or when modals are open
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      // Check if any modal or dialog is open
+      const modalOpen = document.querySelector('[role="dialog"], .modal, [data-modal="true"]');
+      if (modalOpen) {
         return;
       }
 
@@ -1272,13 +1367,13 @@ const handleMouseMove = useCallback((e: React.MouseEvent) => {
         e.preventDefault();
         setIsSpacePressed(true);
       }
-      
+
       // Delete/Backspace - delete selected elements
       if (e.key === 'Delete' || e.key === 'Backspace') {
         e.preventDefault();
         deleteSelectedElements();
       }
-      
+
       // Escape - clear selection and cancel operations
       if (e.key === 'Escape') {
         e.preventDefault();
@@ -1292,7 +1387,9 @@ const handleMouseMove = useCallback((e: React.MouseEvent) => {
         setIsResizing(false);
         setResizeHandle(null);
         setResizeElement(null);
-        onToolChange('select'); // Switch to select tool
+        if (onToolChange) {
+          onToolChange('select'); // Switch to select tool
+        }
       }
       
       // G - toggle grid
@@ -1339,6 +1436,12 @@ const handleMouseMove = useCallback((e: React.MouseEvent) => {
           onToolChange('circle');
           toast.info("Ferramenta Círculo ativada");
         }
+      }
+
+      // V - paste
+      if ((e.key === 'v' || e.key === 'V') && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        pasteCopiedElements();
       }
       
       // T - terrain tool
@@ -1416,7 +1519,7 @@ const handleMouseMove = useCallback((e: React.MouseEvent) => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [deleteSelectedElements, clearSelection, copySelectedElements, onToolChange, elementsActions, resetZoom, zoomToFit, elements]);
+  }, [deleteSelectedElements, clearSelection, copySelectedElements, pasteCopiedElements, onToolChange, elementsActions, resetZoom, zoomToFit, elements]);
 
   const handleReset = useCallback(() => {
     resetZoom();

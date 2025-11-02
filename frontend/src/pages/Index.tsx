@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChevronLeft, ChevronRight, Leaf, Mountain, Building, Sparkles, X } from "lucide-react";
+import { exportProjectAsJSON, createExportData } from "@/utils/exportUtils";
 
 const MemoizedCanvas = memo(Canvas);
 const MemoizedPlantLibrary = memo(PlantLibrary);
@@ -30,6 +31,9 @@ const Index = () => {
   const [canvasSize, setCanvasSize] = useState({ width: 50, height: 30 });
   const [showMobileLibrary, setShowMobileLibrary] = useState(false);
   const canvasRef = useRef<CanvasRef>(null);
+  const [undoRedoActions, setUndoRedoActions] = useState<{ canUndo: boolean; canRedo: boolean; undo: () => void; redo: () => void } | null>(null);
+  // Canvas elements state for export functionality
+  const [canvasElements, setCanvasElements] = useState<any[]>([]);
 
   const { isMobile, isTablet } = useResponsive();
   const isCompact = isMobile || isTablet;
@@ -39,6 +43,70 @@ const Index = () => {
       canvasRef.current.exportFullCanvas();
     }
   }, []);
+
+  // Enhanced undo/redo handlers with proper integration
+  const handleUndo = useCallback(() => {
+    if (undoRedoActions?.undo) {
+      undoRedoActions.undo();
+    }
+  }, [undoRedoActions]);
+
+  const handleRedo = useCallback(() => {
+    if (undoRedoActions?.redo) {
+      undoRedoActions.redo();
+    }
+  }, [undoRedoActions]);
+
+  // Enhanced save functionality with complete project data from canvas
+  const handleSave = useCallback(() => {
+    if (!canvasRef.current) {
+      toast.info('Obtendo dados do canvas...');
+
+      // Get current elements from canvas
+      const elements = canvasRef.current.getElements();
+      const canvasSize = canvasRef.current.getProjectData().projectInfo.canvasSize;
+
+      // Create export data with all canvas elements
+      const exportData = createExportData(elements, canvasSize, 'Meu Projeto');
+
+      // Save to localStorage
+      localStorage.setItem('agroecologia-current-project', JSON.stringify(exportData));
+      localStorage.setItem('agroecologia-last-save', Date.now().toString());
+
+      // Also export as JSON file for user
+      exportProjectAsJSON(elements, canvasSize, 'meu-projeto');
+
+      toast.success('Projeto salvo com sucesso!', {
+        description: `${elements.length} elementos salvos`
+      });
+    } catch (error) {
+      console.error('Save failed:', error);
+      toast.error('Erro ao salvar projeto');
+    }
+  }, []);
+
+  // Enhanced share functionality
+  const handleShare = useCallback(async () => {
+    if (canvasRef.current && navigator.share) {
+      try {
+        // Create share data
+        const shareData = {
+          title: 'Projeto Agroecologia Desenhada',
+          text: `Projeto com dimensões ${canvasSize.width}x${canvasSize.height}m`,
+          url: window.location.href
+        };
+
+        await navigator.share(shareData);
+      } catch (error) {
+        console.log('Share cancelled or failed:', error);
+        // Fallback to copying link
+        if (navigator.clipboard) {
+          await navigator.clipboard.writeText(window.location.href);
+          // Success toast will be handled elsewhere
+        }
+      }
+    }
+  }, [canvasSize]);
 
   const handleToolSelect = useCallback((tool: string) => {
     setSelectedTool(tool);
@@ -84,6 +152,35 @@ const Index = () => {
   }, [isCompact]);
 
   const handleWelcomeClose = useCallback(() => setShowWelcome(false), []);
+
+  // Enhanced copy functionality
+  const handleCopy = useCallback(() => {
+    // This will trigger copy in the Canvas component
+    if (canvasRef.current) {
+      // Trigger keyboard event for copy
+      const event = new KeyboardEvent('keydown', {
+        key: 'c',
+        ctrlKey: true,
+        bubbles: true,
+        cancelable: true
+      });
+      window.dispatchEvent(event);
+    }
+  }, []);
+
+  // Enhanced rotate functionality
+  const handleRotate = useCallback(() => {
+    // This will trigger rotate in the Canvas component
+    if (canvasRef.current) {
+      // Trigger keyboard event for rotate
+      const event = new KeyboardEvent('keydown', {
+        key: 'r',
+        bubbles: true,
+        cancelable: true
+      });
+      window.dispatchEvent(event);
+    }
+  }, []);
   
   const handleCanvasSizeChange = useCallback((size: { width: number; height: number }) => {
     setCanvasSize(size);
@@ -217,22 +314,27 @@ const Index = () => {
     <ThemeProvider>
       <div className="h-screen flex flex-col overflow-hidden layout-container">
         {/* Enhanced Unified Toolbar */}
-        <UnifiedToolbar 
+        <UnifiedToolbar
           selectedTool={selectedTool}
           onToolSelect={handleToolSelect}
-          onUndo={() => console.log('undo')}
-          onRedo={() => console.log('redo')}
-          canUndo={false}
-          canRedo={false}
+          onUndo={handleUndo}
+          onRedo={handleRedo}
+          canUndo={undoRedoActions?.canUndo || false}
+          canRedo={undoRedoActions?.canRedo || false}
           canvasSize={canvasSize}
           onCanvasSizeChange={handleCanvasSizeChange}
+          onSave={handleSave}
+          onShare={handleShare}
+          onExport={handleExportCanvas}
+          onCopy={handleCopy}
+          onRotate={handleRotate}
         />
 
         {/* Main Content with Glass Morphism */}
         <div className="flex-1 flex min-h-0 relative">
           {/* Canvas with enhanced styling */}
           <div className="flex-1 relative canvas-area">
-            <Canvas 
+            <Canvas
               ref={canvasRef}
               selectedTool={selectedTool}
               selectedPlant={selectedPlant}
@@ -244,6 +346,7 @@ const Index = () => {
               onToolChange={handleToolSelect}
               canvasSize={canvasSize}
               onCanvasSizeChange={handleCanvasSizeChange}
+              onUndoRedoActionsChange={setUndoRedoActions}
             />
           </div>
 

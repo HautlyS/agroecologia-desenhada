@@ -39,6 +39,13 @@ interface UnifiedToolbarProps {
   canRedo: boolean;
   canvasSize: { width: number; height: number };
   onCanvasSizeChange: (size: { width: number; height: number }) => void;
+  onSave?: () => void;
+  onShare?: () => void;
+  onExport?: () => void;
+  onRotate?: () => void;
+  onCopy?: () => void;
+  canRotate?: boolean;
+  canCopy?: boolean;
 }
 
 const tools = [
@@ -126,19 +133,32 @@ const ToolButton = memo(({ tool, isSelected, onSelect, isUtility = false }: {
 
 ToolButton.displayName = "ToolButton";
 
-export const UnifiedToolbar = memo(({ 
-  selectedTool, 
-  onToolSelect, 
-  onUndo, 
-  onRedo, 
-  canUndo, 
+export const UnifiedToolbar = memo(({
+  selectedTool,
+  onToolSelect,
+  onUndo,
+  onRedo,
+  canUndo,
   canRedo,
   canvasSize,
-  onCanvasSizeChange
+  onCanvasSizeChange,
+  onSave,
+  onShare,
+  onExport,
+  onRotate,
+  onCopy,
+  canRotate = true,
+  canCopy = true
 }: UnifiedToolbarProps) => {
   const { theme, toggleTheme } = useTheme();
 
   const handleExport = useCallback(() => {
+    // Use external handler if provided, otherwise use internal implementation
+    if (onExport) {
+      onExport();
+      return;
+    }
+
     const canvasElement = document.querySelector('[data-canvas="true"]') as HTMLElement;
     if (!canvasElement) {
       toast.error("Canvas não encontrado para exportação");
@@ -147,7 +167,7 @@ export const UnifiedToolbar = memo(({
 
     import('html2canvas').then(({ default: html2canvas }) => {
       toast.info('Preparando exportação...', { duration: 2000 });
-      
+
       html2canvas(canvasElement, {
         backgroundColor: '#fafbfc',
         scale: 2,
@@ -166,19 +186,19 @@ export const UnifiedToolbar = memo(({
             toast.error('Erro ao gerar imagem');
             return;
           }
-          
+
           const url = URL.createObjectURL(blob);
           const link = document.createElement('a');
           link.href = url;
           link.download = `agroecologia-canvas-${Date.now()}.png`;
           link.style.display = 'none';
-          
+
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
-          
+
           URL.revokeObjectURL(url);
-          
+
           toast.success('Canvas exportado com sucesso!');
         }, 'image/png', 0.9);
       }).catch((error) => {
@@ -189,9 +209,15 @@ export const UnifiedToolbar = memo(({
       console.error('Failed to load html2canvas:', error);
       toast.error('Erro ao carregar biblioteca de exportação');
     });
-  }, []);
+  }, [onExport]);
 
   const handleSave = useCallback(() => {
+    // Use external handler if provided, otherwise use internal implementation
+    if (onSave) {
+      onSave();
+      return;
+    }
+
     const projectData = {
       timestamp: new Date().toISOString(),
       canvasSize,
@@ -202,9 +228,15 @@ export const UnifiedToolbar = memo(({
     toast.success("Projeto salvo com sucesso!", {
       description: "Seus dados foram salvos localmente"
     });
-  }, [canvasSize, theme]);
+  }, [canvasSize, theme, onSave]);
 
   const handleShare = useCallback(() => {
+    // Use external handler if provided, otherwise use internal implementation
+    if (onShare) {
+      onShare();
+      return;
+    }
+
     if (navigator.share) {
       navigator.share({
         title: 'Meu Projeto Agroecológico',
@@ -215,7 +247,7 @@ export const UnifiedToolbar = memo(({
       navigator.clipboard.writeText(window.location.href);
       toast.success("Link copiado para a área de transferência!");
     }
-  }, []);
+  }, [onShare]);
 
   const handleCanvasSizeChange = useCallback((field: 'width' | 'height', value: string) => {
     const numValue = parseFloat(value);
@@ -227,6 +259,22 @@ export const UnifiedToolbar = memo(({
     }
   }, [canvasSize, onCanvasSizeChange]);
 
+  const handleRotate = useCallback(() => {
+    if (onRotate && canRotate) {
+      onRotate();
+    } else {
+      toast.info("Selecione elementos para rotacionar");
+    }
+  }, [onRotate, canRotate]);
+
+  const handleCopy = useCallback(() => {
+    if (onCopy && canCopy) {
+      onCopy();
+    } else {
+      toast.info("Selecione elementos para copiar");
+    }
+  }, [onCopy, canCopy]);
+
   const memoizedTools = useMemo(() => tools.map(tool => (
     <ToolButton
       key={tool.id}
@@ -236,15 +284,27 @@ export const UnifiedToolbar = memo(({
     />
   )), [selectedTool, onToolSelect]);
 
-  const memoizedUtilityTools = useMemo(() => utilityTools.map(tool => (
-    <ToolButton
-      key={tool.id}
-      tool={tool}
-      isSelected={selectedTool === tool.id}
-      onSelect={onToolSelect}
-      isUtility
-    />
-  )), [selectedTool, onToolSelect]);
+  const memoizedUtilityTools = useMemo(() => utilityTools.map(tool => {
+    const handleClick = () => {
+      if (tool.id === 'rotate') {
+        handleRotate();
+      } else if (tool.id === 'copy') {
+        handleCopy();
+      } else {
+        onToolSelect(tool.id);
+      }
+    };
+
+    return (
+      <ToolButton
+        key={tool.id}
+        tool={tool}
+        isSelected={selectedTool === tool.id}
+        onSelect={handleClick}
+        isUtility
+      />
+    );
+  }), [selectedTool, onToolSelect, handleRotate, handleCopy]);
 
   return (
     <div className="flex items-center justify-between h-16 px-6 bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl border-b border-white/20 dark:border-gray-700/20">
