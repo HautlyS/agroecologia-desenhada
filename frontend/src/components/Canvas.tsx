@@ -1259,6 +1259,23 @@ const handleMouseMove = useCallback((e: React.MouseEvent) => {
       setCanvasRealSize(canvasSize);
     }
   }, [canvasSize]);
+
+  // Expose undo/redo actions to parent component
+  useEffect(() => {
+    if (onUndoRedoActionsChange) {
+      const actions = {
+        canUndo: elementsActions.canUndo,
+        canRedo: elementsActions.canRedo,
+        undo: () => {
+          elementsActions.undo();
+        },
+        redo: () => {
+          elementsActions.redo();
+        }
+      };
+      onUndoRedoActionsChange(actions);
+    }
+  }, [elementsActions.canUndo, elementsActions.canRedo, elementsActions.undo, elementsActions.redo, onUndoRedoActionsChange]);
   
   // Enhanced keyboard shortcuts
   useEffect(() => {
