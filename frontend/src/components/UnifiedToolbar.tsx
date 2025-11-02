@@ -42,6 +42,10 @@ interface UnifiedToolbarProps {
   onSave?: () => void;
   onShare?: () => void;
   onExport?: () => void;
+  onRotate?: () => void;
+  onCopy?: () => void;
+  canRotate?: boolean;
+  canCopy?: boolean;
 }
 
 const tools = [
