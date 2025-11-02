@@ -23,6 +23,8 @@ export interface CanvasRef {
   exportFullCanvas: () => Promise<void>;
   exportSelectionAsPNG: () => Promise<void>;
   exportSelectedElementsAsPNG: () => Promise<void>;
+  getElements: () => any[];
+  getProjectData: () => any;
 }
 
 export const Canvas = memo(forwardRef<CanvasRef, CanvasProps>(({ selectedTool, selectedPlant, selectedTerrain, selectedStructure, onPlantUsed, onTerrainUsed, onStructureUsed, onToolChange, canvasSize = CANVAS_CONSTANTS.DEFAULT_CANVAS_REAL_SIZE, onCanvasSizeChange, onUndoRedoActionsChange }, ref) => {
