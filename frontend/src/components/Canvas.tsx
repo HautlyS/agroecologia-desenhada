@@ -573,6 +573,14 @@ export const Canvas = memo(forwardRef<CanvasRef, CanvasProps>(({ selectedTool, s
   const copySelectedElements = useCallback(() => {
     const selectedElements = elements.filter(el => el.selected);
     if (selectedElements.length > 0) {
+      // Store selected elements in clipboard (localStorage)
+      const clipboardData = {
+        elements: selectedElements,
+        timestamp: Date.now()
+      };
+      localStorage.setItem('agroecolia-copied-elements', JSON.stringify(clipboardData));
+
+      // Also add to canvas with offset for immediate feedback
       const copiedElements = selectedElements.map(el => ({
         ...el,
         id: Date.now() + Math.random(),
@@ -587,6 +595,37 @@ export const Canvas = memo(forwardRef<CanvasRef, CanvasProps>(({ selectedTool, s
       toast.error("Selecione elementos para copiar");
     }
   }, [elements, elementsActions, clearSelection]);
+
+  const pasteCopiedElements = useCallback(() => {
+    try {
+      const clipboardData = localStorage.getItem('agroecolia-copied-elements');
+      if (!clipboardData) {
+        toast.error("Nada para colar");
+        return;
+      }
+
+      const { elements: copiedElements } = JSON.parse(clipboardData);
+      if (!Array.isArray(copiedElements) || copiedElements.length === 0) {
+        toast.error("Dados inválidos na área de transferência");
+        return;
+      }
+
+      // Add elements with new IDs and offset
+      const newElements = copiedElements.map(el => ({
+        ...el,
+        id: Date.now() + Math.random(),
+        x: el.x + 30,
+        y: el.y + 30,
+        selected: false
+      }));
+
+      elementsActions.set([...elements, ...newElements]);
+      toast.success(`${newElements.length} elemento(s) colado(s)`);
+    } catch (error) {
+      console.error('Error pasting elements:', error);
+      toast.error("Erro ao colar elementos");
+    }
+  }, [elements, elementsActions]);
 
   const rotateSelectedElements = useCallback(() => {
     const selectedElements = elements.filter(el => el.selected);
