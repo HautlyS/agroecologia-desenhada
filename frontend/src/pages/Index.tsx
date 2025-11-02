@@ -283,15 +283,18 @@ const Index = () => {
     <ThemeProvider>
       <div className="h-screen flex flex-col overflow-hidden layout-container">
         {/* Enhanced Unified Toolbar */}
-        <UnifiedToolbar 
+        <UnifiedToolbar
           selectedTool={selectedTool}
           onToolSelect={handleToolSelect}
-          onUndo={() => console.log('undo')}
-          onRedo={() => console.log('redo')}
-          canUndo={false}
-          canRedo={false}
+          onUndo={handleUndo}
+          onRedo={handleRedo}
+          canUndo={undoRedoActions?.canUndo || false}
+          canRedo={undoRedoActions?.canRedo || false}
           canvasSize={canvasSize}
           onCanvasSizeChange={handleCanvasSizeChange}
+          onSave={handleSave}
+          onShare={handleShare}
+          onExport={handleExportCanvas}
         />
 
         {/* Main Content with Glass Morphism */}
