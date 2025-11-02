@@ -25,7 +25,7 @@ export interface CanvasRef {
   exportSelectedElementsAsPNG: () => Promise<void>;
 }
 
-export const Canvas = memo(forwardRef<CanvasRef, CanvasProps>(({ selectedTool, selectedPlant, selectedTerrain, selectedStructure, onPlantUsed, onTerrainUsed, onStructureUsed, onToolChange, canvasSize = CANVAS_CONSTANTS.DEFAULT_CANVAS_REAL_SIZE, onCanvasSizeChange }, ref) => {
+export const Canvas = memo(forwardRef<CanvasRef, CanvasProps>(({ selectedTool, selectedPlant, selectedTerrain, selectedStructure, onPlantUsed, onTerrainUsed, onStructureUsed, onToolChange, canvasSize = CANVAS_CONSTANTS.DEFAULT_CANVAS_REAL_SIZE, onCanvasSizeChange, onUndoRedoActionsChange }, ref) => {
   const canvasRef = useRef<HTMLDivElement>(null);
   const [elements, elementsActions] = useUndoRedo<DrawingElement[]>([], {
     maxHistorySize: 50,
