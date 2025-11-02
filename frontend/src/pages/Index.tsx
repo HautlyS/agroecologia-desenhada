@@ -301,7 +301,7 @@ const Index = () => {
         <div className="flex-1 flex min-h-0 relative">
           {/* Canvas with enhanced styling */}
           <div className="flex-1 relative canvas-area">
-            <Canvas 
+            <Canvas
               ref={canvasRef}
               selectedTool={selectedTool}
               selectedPlant={selectedPlant}
@@ -313,6 +313,7 @@ const Index = () => {
               onToolChange={handleToolSelect}
               canvasSize={canvasSize}
               onCanvasSizeChange={handleCanvasSizeChange}
+              onUndoRedoActionsChange={setUndoRedoActions}
             />
           </div>
 
