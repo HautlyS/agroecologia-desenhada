@@ -32,6 +32,7 @@ const Index = () => {
   const [showMobileLibrary, setShowMobileLibrary] = useState(false);
   const canvasRef = useRef<CanvasRef>(null);
   const [undoRedoActions, setUndoRedoActions] = useState<{ canUndo: boolean; canRedo: boolean; undo: () => void; redo: () => void } | null>(null);
+  const [canvasElements, setCanvasElements] = useState<any[]>([]); // Store elements from canvas for export
 
   const { isMobile, isTablet } = useResponsive();
   const isCompact = isMobile || isTablet;
