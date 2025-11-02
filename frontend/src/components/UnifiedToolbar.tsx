@@ -129,15 +129,18 @@ const ToolButton = memo(({ tool, isSelected, onSelect, isUtility = false }: {
 
 ToolButton.displayName = "ToolButton";
 
-export const UnifiedToolbar = memo(({ 
-  selectedTool, 
-  onToolSelect, 
-  onUndo, 
-  onRedo, 
-  canUndo, 
+export const UnifiedToolbar = memo(({
+  selectedTool,
+  onToolSelect,
+  onUndo,
+  onRedo,
+  canUndo,
   canRedo,
   canvasSize,
-  onCanvasSizeChange
+  onCanvasSizeChange,
+  onSave,
+  onShare,
+  onExport
 }: UnifiedToolbarProps) => {
   const { theme, toggleTheme } = useTheme();
 
