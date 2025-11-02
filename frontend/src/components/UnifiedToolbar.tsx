@@ -144,7 +144,11 @@ export const UnifiedToolbar = memo(({
   onCanvasSizeChange,
   onSave,
   onShare,
-  onExport
+  onExport,
+  onRotate,
+  onCopy,
+  canRotate = true,
+  canCopy = true
 }: UnifiedToolbarProps) => {
   const { theme, toggleTheme } = useTheme();
 
