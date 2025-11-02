@@ -284,15 +284,27 @@ export const UnifiedToolbar = memo(({
     />
   )), [selectedTool, onToolSelect]);
 
-  const memoizedUtilityTools = useMemo(() => utilityTools.map(tool => (
-    <ToolButton
-      key={tool.id}
-      tool={tool}
-      isSelected={selectedTool === tool.id}
-      onSelect={onToolSelect}
-      isUtility
-    />
-  )), [selectedTool, onToolSelect]);
+  const memoizedUtilityTools = useMemo(() => utilityTools.map(tool => {
+    const handleClick = () => {
+      if (tool.id === 'rotate') {
+        handleRotate();
+      } else if (tool.id === 'copy') {
+        handleCopy();
+      } else {
+        onToolSelect(tool.id);
+      }
+    };
+
+    return (
+      <ToolButton
+        key={tool.id}
+        tool={tool}
+        isSelected={selectedTool === tool.id}
+        onSelect={handleClick}
+        isUtility
+      />
+    );
+  }), [selectedTool, onToolSelect, handleRotate, handleCopy]);
 
   return (
     <div className="flex items-center justify-between h-16 px-6 bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl border-b border-white/20 dark:border-gray-700/20">
